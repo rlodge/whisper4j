@@ -69,6 +69,48 @@ public class TestReadHeader {
 	}
 
 	@Test
+	public void testAnalyticsProdWhisperFile() throws Exception {
+		String testFile = new File(System.getProperty("user.dir"), "target/test-classes/p99.wsp").getAbsolutePath();
+		System.out.println(testFile);
+		Whisper jisper = new Whisper();
+		Header header = jisper.info(testFile);
+		Assert.assertNotNull(header);
+		Assert.assertNotNull(header.metadata);
+		Assert.assertEquals(AggregationMethod.Average.getIntValue(), header.metadata.aggregationType);
+		Assert.assertEquals("archiveCount", 1, header.metadata.archiveCount);
+		Assert.assertEquals("xFileFactor", 0.5f, header.metadata.xFileFactor, 0.001);
+		Assert.assertEquals("maxRetention", 34387200, header.metadata.maxRetention);
+		Assert.assertNotNull(header.archiveInfo);
+		Assert.assertEquals(1, header.archiveInfo.size());
+		ArchiveInfo info = header.archiveInfo.get(0);
+		Assert.assertEquals("Points", 573120, info.points);
+		Assert.assertEquals("secondsPerPoint", 60, info.secondsPerPoint);
+		Assert.assertEquals("offset", 28, info.offset);
+		Assert.assertEquals("size", 6877440, info.size);
+		Assert.assertEquals("retention", 34387200, info.retention);
+		long start = System.nanoTime();
+		TimeInfo result = jisper.fetch(testFile, Integer.MIN_VALUE, Integer.MAX_VALUE);
+		long loaded = System.nanoTime();
+		final List<Point> points = Arrays.asList(result.points);
+		points.sort(Comparator.comparingLong((ToLongFunction<Point>) value -> value.timestamp).reversed());
+		long sorted = System.nanoTime();
+//		System.out.println("Loaded in " + TimeUnit.NANOSECONDS.toMillis(loaded - start) + "ms; sorted in " + TimeUnit.NANOSECONDS.toMillis(sorted - loaded) + "ms");
+		Assert.assertEquals("Points", 573120, result.points.length);
+		Optional<Point> maybePoint = points.stream().filter(p -> p.timestamp == 1547232300L)
+			.findFirst();
+
+		if (maybePoint.isPresent()) {
+			final Point point = maybePoint.get();
+			Assert.assertEquals("Point value", 8329421F, point.value, 0.000001f);
+			Assert.assertEquals("Point value should be whole number", 0, point.value % 1, 0.0);
+		} else {
+			Assert.fail("Must get point for 1547232300");
+		}
+
+		// points.subList(0, 500).forEach(p -> System.out.println(p.timestamp + " " + new Date(p.timestamp * 1000L) + " => " + p.value));
+	}
+
+	@Test
 	public void test_60_1440() throws Exception {
 		String testFile = getWhistperFile(getClass(), "60_1440.wsp");
 
