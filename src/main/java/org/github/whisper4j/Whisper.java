@@ -1,13 +1,10 @@
 package org.github.whisper4j;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -542,7 +539,7 @@ public class Whisper {
 			InvalidTimeIntervalException {
 		Header header = readHeader(path, fh);
 		int now = time();
-		if (untilTime == Long.MAX_VALUE || untilTime == Long.MIN_VALUE) {
+		if (untilTime == Integer.MAX_VALUE || untilTime == Integer.MIN_VALUE) {
 			untilTime = now;
 		}
 		// long fromTime = int(fromTime)
@@ -553,7 +550,7 @@ public class Whisper {
 			fromTime = oldestTime;
 		}
 
-		if ((fromTime < untilTime) == false) {
+		if (!(fromTime < untilTime)) {
 			throw new InvalidTimeIntervalException("Invalid time interval "
 					+ fromTime + " " + untilTime);
 		}
@@ -705,7 +702,7 @@ public class Whisper {
 			// long timestamp = buf.getInt();
 			double value = buf.getDouble((i * pointsize) + 4);
 
-			if (timestamp == currentInterval) {
+//			if (timestamp == currentInterval) {
 				//System.out.println(i + " " + currentInterval + " --- -" + i
 				//		+ " - " + timestamp + " , " + value);
 				// This is a timestamp
@@ -718,14 +715,14 @@ public class Whisper {
 //				System.err.println(i + " " + currentInterval + " 000 -" + i
 //						+ " - " + timestamp + " , " + value);
 
-			} else {
+//			} else {
 				//System.out.println(i + " " + currentInterval + " ??? -" + i
 				//		+ " - " + timestamp + " , " + value);
-				Point p = new Point();
-				p.timestamp = 0;
-				p.value = 0;
-				points[i] = p;
-			}
+//				Point p = new Point();
+//				p.timestamp = 0;
+//				p.value = 0;
+//				points[i] = p;
+//			}
 		}
 		return points;
 	}

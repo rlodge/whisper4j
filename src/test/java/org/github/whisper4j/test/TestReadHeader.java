@@ -1,17 +1,21 @@
 package org.github.whisper4j.test;
 
-import java.io.File;
-import java.net.URL;
-
 import org.github.whisper4j.AggregationMethod;
 import org.github.whisper4j.ArchiveInfo;
 import org.github.whisper4j.Header;
-import org.github.whisper4j.Whisper;
 import org.github.whisper4j.Point;
 import org.github.whisper4j.TimeInfo;
+import org.github.whisper4j.Whisper;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.File;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.ToLongFunction;
 
 public class TestReadHeader {
 	public static String getWhistperFile(Class anyTestClass, String fileName) {
@@ -24,6 +28,44 @@ public class TestReadHeader {
 				- clsUri.length()));
 		String str = root.getAbsolutePath() + File.separator + fileName;
 		return str;
+	}
+
+	@Test
+	public void testAnalyticsWhisperFile() throws Exception {
+		String testFile = new File(System.getProperty("user.dir"), "target/test-classes/p50.wsp").getAbsolutePath();
+		System.out.println(testFile);
+		Whisper jisper = new Whisper();
+		Header header = jisper.info(testFile);
+		Assert.assertNotNull(header);
+		Assert.assertNotNull(header.metadata);
+		Assert.assertEquals(AggregationMethod.Average.getIntValue(), header.metadata.aggregationType);
+		Assert.assertEquals("archiveCount", 1, header.metadata.archiveCount);
+		Assert.assertEquals("xFileFactor", 0.5f, header.metadata.xFileFactor, 0.001);
+		Assert.assertEquals("maxRetention", 10800000, header.metadata.maxRetention);
+		Assert.assertNotNull(header.archiveInfo);
+		Assert.assertEquals(1, header.archiveInfo.size());
+		ArchiveInfo info = header.archiveInfo.get(0);
+		Assert.assertEquals("Points", 180000, info.points);
+		Assert.assertEquals("secondsPerPoint", 60, info.secondsPerPoint);
+		Assert.assertEquals("offset", 28, info.offset);
+		Assert.assertEquals("size", 2160000, info.size);
+		Assert.assertEquals("retention", 10800000, info.retention);
+		TimeInfo result = jisper.fetch(testFile, Integer.MIN_VALUE, Integer.MAX_VALUE);
+		Assert.assertEquals("Points", 180000, result.points.length);
+		final List<Point> points = Arrays.asList(result.points);
+		points.sort(Comparator.comparingLong((ToLongFunction<Point>) value -> value.timestamp).reversed());
+		Optional<Point> maybePoint = points.stream().filter(p -> p.timestamp == 1547232300L)
+			.findFirst();
+
+		if (maybePoint.isPresent()) {
+			final Point point = maybePoint.get();
+			Assert.assertEquals("Point value", 1084370F, point.value, 0.000001f);
+			Assert.assertEquals("Point value should be whole number", 0, point.value % 1, 0.0);
+		} else {
+			Assert.fail("Must get point for 1547232300");
+		}
+		
+		// points.subList(0, 500).forEach(p -> System.out.println(p.timestamp + " " + new Date(p.timestamp * 1000L) + " => " + p.value));
 	}
 
 	@Test
