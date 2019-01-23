@@ -11,16 +11,15 @@ import java.util.Map;
 
 /**
  * This module is an implementation of the Whisper database API
- * 
+ * <p>
  * Here is the basic layout of a whisper data file
- * 
+ * <p>
  * File = Header,Data Header = Metadata,ArchiveInfo+ Metadata =
  * aggregationType,maxRetention,xFilesFactor,archiveCount ArchiveInfo =
  * Offset,SecondsPerPoint,Points Data = Archive+ Archive = Point+ Point =
  * timestamp,value
- * 
+ *
  * @author leen toelen
- * 
  */
 public class Whisper {
 	private boolean LOCK = false;
@@ -31,7 +30,7 @@ public class Whisper {
 	private static int ARCHIVEINFO_BYTE_SIZE = 12;
 
 	private MetaData readMetaData(String path, RandomAccessFile fh)
-			throws CorruptWhisperFile {
+		throws CorruptWhisperFile {
 		try {
 			// MetaData is 16 bytes
 			MetaData metaData = new MetaData();
@@ -49,7 +48,7 @@ public class Whisper {
 	}
 
 	private int writeHeader(RandomAccessFile fh, Header header)
-			throws IOException {
+		throws IOException {
 		fh.seek(0);
 		fh.writeInt(header.metadata.aggregationType);
 		fh.writeInt(header.metadata.maxRetention);
@@ -63,19 +62,19 @@ public class Whisper {
 			fh.writeInt(info.points);
 		}
 		return METADATA_BYTE_SIZE
-				+ (header.archiveInfo.size() * ARCHIVEINFO_BYTE_SIZE);
+			+ (header.archiveInfo.size() * ARCHIVEINFO_BYTE_SIZE);
 	}
 
 	/**
 	 * Reads the header part of a whisper file
-	 * 
+	 *
 	 * @param fh
 	 * @return
 	 * @throws CorruptWhisperFile
 	 * @throws IOException
 	 */
 	private Header readHeader(String path, RandomAccessFile fh)
-			throws CorruptWhisperFile, IOException {
+		throws CorruptWhisperFile, IOException {
 		Header info = __headerCache.get(path);
 		if (info != null) {
 			return info;
@@ -98,8 +97,8 @@ public class Whisper {
 				archiveInfos.add(archiveInfo);
 			} catch (Exception e) {
 				throw new CorruptWhisperFile("Unable to read archive metadata "
-						+ i + " of " + metaData.archiveCount + ", at position "
-						+ fh.getFilePointer(), e);
+					+ i + " of " + metaData.archiveCount + ", at position "
+					+ fh.getFilePointer(), e);
 			}
 
 		}
@@ -124,24 +123,24 @@ public class Whisper {
 		archiveInfo.secondsPerPoint = fh.readInt();
 		archiveInfo.points = fh.readInt();
 		archiveInfo.retention = archiveInfo.secondsPerPoint
-				* archiveInfo.points;
+			* archiveInfo.points;
 		archiveInfo.size = archiveInfo.points * Point.sizeof();
 		return archiveInfo;
 	}
 
 	/**
-	 * 
 	 * @param path
-	 * @param aggregationMethod
-	 *            specifies the method to use when propogating data (see
-	 *            ``whisper.aggregationMethods``)
+	 * @param aggregationMethod specifies the method to use when propogating data (see
+	 *                          ``whisper.aggregationMethods``)
 	 * @throws CorruptWhisperFile
 	 * @throws IOException
 	 */
-	public void setAggregationMethod(String path,
-			AggregationMethod aggregationMethod)
-			throws InvalidAggregationMethodException, CorruptWhisperFile,
-			IOException {
+	public void setAggregationMethod(
+		String path,
+		AggregationMethod aggregationMethod
+	)
+		throws InvalidAggregationMethodException, CorruptWhisperFile,
+		IOException {
 		RandomAccessFile fh = new RandomAccessFile(path, "rw");// "r+b"
 		if (LOCK) {
 			// fcntl.flock( fh.fileno(), fcntl.LOCK_EX );
@@ -149,7 +148,7 @@ public class Whisper {
 
 		if (aggregationMethod == null) {
 			throw new InvalidAggregationMethodException(
-					"Unrecognized aggregation method");
+				"Unrecognized aggregation method");
 		}
 		MetaData metaData = readMetaData(path, fh);
 		metaData.aggregationType = aggregationMethod.getIntValue();
@@ -173,28 +172,26 @@ public class Whisper {
 	}
 
 	/**
-	 * 
 	 * @param path
-	 * @param archiveList
-	 *            is a list of archives, each of which is of the form
-	 *            (secondsPerPoint,numberOfPoints)
-	 * @param xFilesFactor
-	 *            =0.5 specifies the fraction of data points in a propagation
-	 *            interval that must have known values for a propagation to
-	 *            occur
-	 * @param aggregationMethod
-	 *            ='average' specifies the function to use when propogating data
-	 *            (see ``whisper.aggregationMethods``)
+	 * @param archiveList       is a list of archives, each of which is of the form
+	 *                          (secondsPerPoint,numberOfPoints)
+	 * @param xFilesFactor      =0.5 specifies the fraction of data points in a propagation
+	 *                          interval that must have known values for a propagation to
+	 *                          occur
+	 * @param aggregationMethod ='average' specifies the function to use when propogating data
+	 *                          (see ``whisper.aggregationMethods``)
 	 * @throws IOException
 	 * @throws InvalidConfigurationException
 	 */
-	public void create(String path, RetentionDef[] archiveList,
-			float xFilesFactor, AggregationMethod aggregationMethod)
-			throws IOException, InvalidConfigurationException {
+	public void create(
+		String path, RetentionDef[] archiveList,
+		float xFilesFactor, AggregationMethod aggregationMethod
+	)
+		throws IOException, InvalidConfigurationException {
 		// Validate archive configurations...
 		if (archiveList == null) {
 			throw new InvalidConfigurationException(
-					"You must specify at least one archive configuration!");
+				"You must specify at least one archive configuration!");
 		}
 
 		// TODO: sort
@@ -209,23 +206,23 @@ public class Whisper {
 			RetentionDef next = archiveList[i + 1];
 			if ((archive.secondsPerPoint < next.secondsPerPoint) == false) {
 				throw new InvalidConfigurationException(
-						"You cannot configure two archives with the same precision "
-								+ archive + "," + next);
+					"You cannot configure two archives with the same precision "
+						+ archive + "," + next);
 			}
 			if ((archive.secondsPerPoint % archive.secondsPerPoint) != 0) {
 				throw new InvalidConfigurationException(
-						"Higher precision archives' precision must evenly divide all lower precision archives' precision "
-								+ archive.secondsPerPoint
-								+ ","
-								+ next.secondsPerPoint);
+					"Higher precision archives' precision must evenly divide all lower precision archives' precision "
+						+ archive.secondsPerPoint
+						+ ","
+						+ next.secondsPerPoint);
 			}
 			long retention = archive.secondsPerPoint * archive.point;
 			long nextRetention = next.secondsPerPoint * next.point;
 
 			if ((nextRetention > retention) == false) {
 				throw new InvalidConfigurationException(
-						"Lower precision archives must cover larger time intervals than higher precision archives "
-								+ archive + "," + next);
+					"Lower precision archives must cover larger time intervals than higher precision archives "
+						+ archive + "," + next);
 			}
 		}
 
@@ -233,7 +230,7 @@ public class Whisper {
 		File f = new File(path);
 		if (f.exists()) {
 			throw new InvalidConfigurationException("File " + path
-					+ " already exists!");
+				+ " already exists!");
 		}
 
 		RandomAccessFile fh = new RandomAccessFile(path, "rw");
@@ -248,13 +245,13 @@ public class Whisper {
 		header.metadata.xFileFactor = xFilesFactor;
 		// TODO
 		int oldest = getOldest(archiveList);// sorted([secondsPerPoint * points
-											// for
+		// for
 		// secondsPerPoint,points in archiveList])[-1]
 		header.metadata.maxRetention = oldest;
 		header.archiveInfo = new ArrayList<ArchiveInfo>();
 
 		int headerSize = METADATA_BYTE_SIZE
-				+ (archiveList.length * ARCHIVEINFO_BYTE_SIZE);
+			+ (archiveList.length * ARCHIVEINFO_BYTE_SIZE);
 		// headerSize = metadataSize + (archiveInfoSize * len(archiveList))
 		int archiveOffsetPointer = headerSize;
 
@@ -299,17 +296,17 @@ public class Whisper {
 	}
 
 	public void update(String path, float value, long timestamp)
-			throws InvalidAggregationMethodException, CorruptWhisperFile, TimestampNotCoveredException, IOException {
+		throws InvalidAggregationMethodException, CorruptWhisperFile, TimestampNotCoveredException, IOException {
 		RandomAccessFile fh = new RandomAccessFile(path, "rw");
-		file_update(path,fh, value, timestamp);
+		file_update(path, fh, value, timestamp);
 	}
 
-	public void file_update(String path,RandomAccessFile fh, float value, long timestamp) throws InvalidAggregationMethodException, IOException, CorruptWhisperFile, TimestampNotCoveredException {
+	public void file_update(String path, RandomAccessFile fh, float value, long timestamp) throws InvalidAggregationMethodException, IOException, CorruptWhisperFile, TimestampNotCoveredException {
 		if (LOCK) {
 			// fcntl.flock( fh.fileno(), fcntl.LOCK_EX )
 		}
 
-		Header header = readHeader(path,fh);
+		Header header = readHeader(path, fh);
 		long now = System.currentTimeMillis();
 		if (timestamp == Long.MAX_VALUE || timestamp == Long.MIN_VALUE || timestamp == Integer.MIN_VALUE || timestamp == Integer.MAX_VALUE) {
 			timestamp = now;
@@ -317,16 +314,16 @@ public class Whisper {
 
 		// timestamp = int(timestamp)
 		long diff = now - timestamp;
-		if (((diff < header.metadata.maxRetention) ==false && diff >= 0)) {
+		if (((diff < header.metadata.maxRetention) == false && diff >= 0)) {
 			throw new TimestampNotCoveredException(
-					"Timestamp not covered by any archives in this database.");
+				"Timestamp not covered by any archives in this database.");
 		}
 
-		ArchiveInfo archive=null;
+		ArchiveInfo archive = null;
 		List<ArchiveInfo> lowerArchives = null;
 
 		for (int i = 0; i < header.archiveInfo.size(); i++) {// i,archive in
-																// enumerate(header['archives']){
+			// enumerate(header['archives']){
 			archive = header.archiveInfo.get(0);
 			// Find the highest-precision archive that covers timestamp
 			if (archive.retention < diff) {
@@ -366,7 +363,8 @@ public class Whisper {
 		ArchiveInfo higher = archive;
 		for (ArchiveInfo lowerArchive : lowerArchives) {
 			boolean proagate = Propagation.__propagate(fh, header, myInterval,
-					higher, lowerArchive);
+				higher, lowerArchive
+			);
 			if (proagate == false) {
 				break;
 			} else {
@@ -401,10 +399,8 @@ public class Whisper {
 	// RandomAccesFile fh = new RandomAccessFile(path,'r+b');
 	// file_update_many(fh, points);
 	// }
-	
-	
-	
-	
+
+
 	// public void file_update_many(RandomAccessFile fh, List<Point> points){
 	// if( LOCK){
 	// //fcntl.flock( fh.fileno(), fcntl.LOCK_EX )
@@ -450,25 +446,24 @@ public class Whisper {
 	// fh.close();
 	// }
 
-	public Point[] getAlignedPoints(Point[] points,int step){
+	public Point[] getAlignedPoints(Point[] points, int step) {
 		//alignedPoints = [ (timestamp - (timestamp % step), value)  for (timestamp,value) in points ]
 		Point[] alignedPoints = new Point[points.length];
-		int i=0;
-		for(Point point:points){
+		int i = 0;
+		for (Point point : points) {
 			Point aligned = new Point();
-			aligned.timestamp = point.timestamp - mod(point.timestamp,step);
+			aligned.timestamp = point.timestamp - mod(point.timestamp, step);
 			aligned.value = point.value;
 			alignedPoints[i] = aligned;
-					i++;
+			i++;
 		}
 		return alignedPoints;
 	}
-	
 
 
 	/**
 	 * Like a subString for Lists
-	 * 
+	 *
 	 * @param archiveInfo
 	 * @param i
 	 * @return
@@ -493,24 +488,22 @@ public class Whisper {
 	}
 
 	/**
-	 * 
 	 * @param path
-	 * @param fromTime
-	 *            epoch time in seconds
-	 * @param untilTime
-	 *            epoch time in seconds, but defaults to now
+	 * @param fromTime  epoch time in seconds
+	 * @param untilTime epoch time in seconds, but defaults to now
 	 * @return
 	 * @throws Exception
 	 */
 	public TimeInfo fetch(String path, int fromTime, int untilTime)
-			throws Exception {
-		RandomAccessFile fh = new RandomAccessFile(path, "r");
-		return file_fetch(path, fh, fromTime, untilTime);
+		throws Exception {
+		try (RandomAccessFile fh = new RandomAccessFile(path, "r")) {
+			return file_fetch(path, fh, fromTime, untilTime);
+		}
 	}
 
 	/**
 	 * Seconds since the epoch
-	 * 
+	 *
 	 * @return
 	 */
 	public static int time() {
@@ -521,7 +514,7 @@ public class Whisper {
 
 	/**
 	 * Negative-safe modulus
-	 * 
+	 *
 	 * @param x
 	 * @param y
 	 * @return
@@ -534,9 +527,11 @@ public class Whisper {
 		return result;
 	}
 
-	public TimeInfo file_fetch(String path, RandomAccessFile fh, int fromTime,
-			int untilTime) throws IOException, CorruptWhisperFile,
-			InvalidTimeIntervalException {
+	public TimeInfo file_fetch(
+		String path, RandomAccessFile fh, int fromTime,
+		int untilTime
+	) throws IOException, CorruptWhisperFile,
+		InvalidTimeIntervalException {
 		Header header = readHeader(path, fh);
 		int now = time();
 		if (untilTime == Integer.MAX_VALUE || untilTime == Integer.MIN_VALUE) {
@@ -552,7 +547,7 @@ public class Whisper {
 
 		if (!(fromTime < untilTime)) {
 			throw new InvalidTimeIntervalException("Invalid time interval "
-					+ fromTime + " " + untilTime);
+				+ fromTime + " " + untilTime);
 		}
 		if (untilTime > now) {
 			untilTime = now;
@@ -571,9 +566,9 @@ public class Whisper {
 		}
 
 		int fromInterval = (fromTime - (fromTime % archive.secondsPerPoint))
-				+ archive.secondsPerPoint;
+			+ archive.secondsPerPoint;
 		int untilInterval = (untilTime - (untilTime % archive.secondsPerPoint))
-				+ archive.secondsPerPoint;
+			+ archive.secondsPerPoint;
 		fh.seek(archive.offset);
 
 		// long pointer = fh.getFilePointer();
@@ -610,8 +605,10 @@ public class Whisper {
 		timeDistance = untilInterval - baseInterval;
 		pointDistance = timeDistance / archive.secondsPerPoint;
 		byteDistance = pointDistance * Point.sizeof();
-		int untilOffset = (int) (archive.offset + mod(byteDistance,
-				archive.size));
+		int untilOffset = (int) (archive.offset + mod(
+			byteDistance,
+			archive.size
+		));
 
 		// Read all the points in the interval
 		fh.seek(fromOffset);
@@ -622,7 +619,7 @@ public class Whisper {
 			int read = fh.read(seriesString);
 			if (read != seriesString.length) {
 				throw new CorruptWhisperFile("read " + read + " != "
-						+ seriesString.length);
+					+ seriesString.length);
 			}
 		} else {
 			// We do wrap around the archive, so we need two reads
@@ -680,8 +677,10 @@ public class Whisper {
 		return C;
 	}
 
-	public static Point[] unpackPoints(byte[] series, int currentInterval,
-			int step) {
+	public static Point[] unpackPoints(
+		byte[] series, int currentInterval,
+		int step
+	) {
 		int pointsize = Point.sizeof();
 		int count = series.length / pointsize;
 
@@ -696,28 +695,28 @@ public class Whisper {
 			// buf.get(dst, i, 2);
 			// System.out.println(buf );
 			long timestamp = buf.getInt(i * pointsize) & 0xffffffffL;// Remove
-																		// the
-																		// sign
+			// the
+			// sign
 
 			// long timestamp = buf.getInt();
 			double value = buf.getDouble((i * pointsize) + 4);
 
 //			if (timestamp == currentInterval) {
-				//System.out.println(i + " " + currentInterval + " --- -" + i
-				//		+ " - " + timestamp + " , " + value);
-				// This is a timestamp
-				Point p = new Point();
-				p.timestamp = timestamp;
-				p.value = (float) value;
+			//System.out.println(i + " " + currentInterval + " --- -" + i
+			//		+ " - " + timestamp + " , " + value);
+			// This is a timestamp
+			Point p = new Point();
+			p.timestamp = timestamp;
+			p.value = (float) value;
 
-				points[i] = p;
+			points[i] = p;
 //			} else if (timestamp == 0) {
 //				System.err.println(i + " " + currentInterval + " 000 -" + i
 //						+ " - " + timestamp + " , " + value);
 
 //			} else {
-				//System.out.println(i + " " + currentInterval + " ??? -" + i
-				//		+ " - " + timestamp + " , " + value);
+			//System.out.println(i + " " + currentInterval + " ??? -" + i
+			//		+ " - " + timestamp + " , " + value);
 //				Point p = new Point();
 //				p.timestamp = 0;
 //				p.value = 0;
@@ -728,28 +727,30 @@ public class Whisper {
 	}
 
 	/**
-	 * @see java.nio.Bits#makeInt()
 	 * @param b3
 	 * @param b2
 	 * @param b1
 	 * @param b0
 	 * @return
+	 * @see java.nio.Bits#makeInt()
 	 */
 	static private int makeInt(byte b3, byte b2, byte b1, byte b0) {
 		return (int) ((((b3 & 0xff) << 24) | ((b2 & 0xff) << 16)
-				| ((b1 & 0xff) << 8) | ((b0 & 0xff) << 0)));
+			| ((b1 & 0xff) << 8) | ((b0 & 0xff) << 0)));
 	}
 
-	static private long makeLong(byte b7, byte b6, byte b5, byte b4, byte b3,
-			byte b2, byte b1, byte b0) {
+	static private long makeLong(
+		byte b7, byte b6, byte b5, byte b4, byte b3,
+		byte b2, byte b1, byte b0
+	) {
 		return ((((long) b7 & 0xff) << 56) | (((long) b6 & 0xff) << 48)
-				| (((long) b5 & 0xff) << 40) | (((long) b4 & 0xff) << 32)
-				| (((long) b3 & 0xff) << 24) | (((long) b2 & 0xff) << 16)
-				| (((long) b1 & 0xff) << 8) | (((long) b0 & 0xff) << 0));
+			| (((long) b5 & 0xff) << 40) | (((long) b4 & 0xff) << 32)
+			| (((long) b3 & 0xff) << 24) | (((long) b2 & 0xff) << 16)
+			| (((long) b1 & 0xff) << 8) | (((long) b0 & 0xff) << 0));
 	}
 
 	public static Point readPoint(RandomAccessFile fh, int offset)
-			throws IOException {
+		throws IOException {
 		// int pointsize = Point.sizeof();
 		byte[] buf = new byte[Point.sizeof()];
 		fh.read(buf);
@@ -760,7 +761,8 @@ public class Whisper {
 
 		// long timestamp = buf.getInt();
 		double value = Double.longBitsToDouble(makeLong(buf[11], buf[10],
-				buf[9], buf[8], buf[7], buf[6], buf[5], buf[4]));
+			buf[9], buf[8], buf[7], buf[6], buf[5], buf[4]
+		));
 
 		Point p = new Point();
 		p.value = (float) value;
@@ -769,7 +771,7 @@ public class Whisper {
 	}
 
 	public static void writePoint(RandomAccessFile fh, int offset, Point p)
-			throws IOException {
+		throws IOException {
 		fh.seek(offset);
 		fh.writeInt((int) p.timestamp);
 		fh.writeDouble(p.value);
