@@ -94,7 +94,7 @@ public class TestReadHeader {
 		final List<Point> points = Arrays.asList(result.points);
 		points.sort(Comparator.comparingLong((ToLongFunction<Point>) value -> value.timestamp).reversed());
 		long sorted = System.nanoTime();
-//		System.out.println("Loaded in " + TimeUnit.NANOSECONDS.toMillis(loaded - start) + "ms; sorted in " + TimeUnit.NANOSECONDS.toMillis(sorted - loaded) + "ms");
+		// System.out.println("Loaded in " + TimeUnit.NANOSECONDS.toMillis(loaded - start) + "ms; sorted in " + TimeUnit.NANOSECONDS.toMillis(sorted - loaded) + "ms");
 		Assert.assertEquals("Points", 573120, result.points.length);
 		Optional<Point> maybePoint = points.stream().filter(p -> p.timestamp == 1547232300L)
 			.findFirst();
